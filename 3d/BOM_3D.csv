@@ -1,0 +1,15 @@
+ref,designator,part_number,source_of_3d_model,filename_step
+1,U1,ESP32-C6-WROOM-1,placeholder,ESP32-C6-WROOM.step
+2,C1,CE5R5155CF-ZJ,placeholder,CE5R5155CF-ZJ-supercap.step
+3,U2,ICL1122,placeholder,ICL1122-radar-module.step
+4,U3,VEML6035,placeholder,VEML6035-ALS.step
+5,U4,MCP4725,placeholder,MCP4725-DAC.step
+6,U5,ISO3082,placeholder,ISO3082-RS485.step
+7,U6,OPA192,placeholder,OPA192-opamp.step
+8,U7,TLV431,placeholder,TLV431-Vref.step
+9,J1,Terminal-2pin,placeholder,screw-terminal-2pin-0-10V.step
+10,J2,XLR-5pin,placeholder,XLR-5pin-DMX.step
+11,J3,DALI-Terminal-2pin,placeholder,DALI-screw-terminal-2pin.step
+12,J4,Power-Barrel-Jack,placeholder,power-barrel-jack.step
+13,H1-H4,Standoff-M3-10mm,placeholder,standoff-M3-10mm.step
+14,S1-S4,Screw-M3-6mm,placeholder,screw-M3-6mm.step
