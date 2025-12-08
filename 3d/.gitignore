@@ -1,0 +1,31 @@
+# Temporary STEP files
+*.step~
+*.stp~
+*~
+
+# Backup files
+*.bak
+*.backup
+
+# CAD software temporary files
+*.lock
+*.autosave
+
+# Thumbnail cache
+Thumbs.db
+.DS_Store
+
+# Python cache (if generation scripts are stored here)
+__pycache__/
+*.pyc
+*.pyo
+
+# IDE/Editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Log files
+*.log
