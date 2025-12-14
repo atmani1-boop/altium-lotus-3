@@ -1,0 +1,93 @@
+Ref Designator,Part Number,Manufacturer,Description,Quantity,Footprint,Category
+J1,Zhaga-18,Various,Connector for 24VDC input,1,Zhaga-18,Power
+F1,RXEF050,Littelfuse,PTC resettable fuse 500mA,1,1206,Power
+D_TVS1,SMAJ24A,Various,TVS diode 24V 400W,1,DO-214AC,Power
+C1,Generic,Various,Capacitor 47µF 50V X7R,1,1210,Passives
+C2,Generic,Various,Capacitor 10µF 50V X7R,1,0805,Passives
+L1,744773110,Würth Elektronik,Inductor 10µH 2.8A,1,5.8x5.2mm,Power
+U1,TPS54231,Texas Instruments,Buck converter 24V→5V 2A,1,SOIC-8,Power
+C3,Generic,Various,Capacitor 10µF 50V X7R,1,0805,Passives
+C4,Generic,Various,Capacitor 0.1µF 50V X7R,1,0603,Passives
+R1,Generic,Various,Resistor 100kΩ 1%,1,0603,Passives
+R2,Generic,Various,Resistor 22kΩ 1%,1,0603,Passives
+C5,Generic,Various,Capacitor 100µF 10V X7R,1,1210,Passives
+C6,Generic,Various,Capacitor 10µF 10V X7R,1,0805,Passives
+L2,744773047,Würth Elektronik,Inductor 4.7µH 1.5A,1,5.8x5.2mm,Power
+U2,TPS62840,Texas Instruments,Buck converter 24V→3.3V 750mA,1,VSON-10,Power
+C7,Generic,Various,Capacitor 10µF 50V X7R,1,0805,Passives
+R3,Generic,Various,Resistor 680kΩ 1%,1,0603,Passives
+R4,Generic,Various,Resistor 200kΩ 1%,1,0603,Passives
+C8,Generic,Various,Capacitor 47µF 6.3V X7R,1,0805,Passives
+C9,Generic,Various,Capacitor 10µF 6.3V X7R,1,0603,Passives
+U3,UCC27321,Texas Instruments,MOSFET driver 9A peak,1,SOT-23-5,Laser
+Q1,BSC340N08NS,Infineon,N-MOSFET 80V 17A 3.4mΩ,1,PG-TDSON-8,Laser
+D1,SPL S1L90A_3,OSRAM,Laser diode 905nm 75W peak,1,SMD,Laser
+R_SENSE,WSL2512R1000FEA,Vishay,Current sense resistor 0.1Ω 1% 1W,1,2512,Laser
+R5,Generic,Various,Resistor 10kΩ,1,0603,Passives
+R6,Generic,Various,Resistor 22Ω,1,0603,Passives
+C10,Generic,Various,Capacitor 0.1µF 25V X7R,1,0603,Passives
+C11,Generic,Various,Capacitor 100µF 10V X5R,1,1210,Passives
+C12,Generic,Various,Capacitor 10µF 10V X7R,1,0805,Passives
+C13,Generic,Various,Capacitor 0.1µF 10V X7R,1,0603,Passives
+D2,S5973,Hamamatsu,PIN photodiode 905nm optimized,1,SMD,RX
+U4,OPA857,Texas Instruments,Transimpedance amplifier 1.5GHz GBW,1,SOT-23-5,RX
+U5,TLV3502,Texas Instruments,Dual comparator 4.5ns prop delay,1,SOIC-8,RX
+R7,Generic,Various,Resistor 10kΩ 1%,1,0603,Passives
+C14,Generic,Various,Capacitor 0.5pF C0G,1,0402,Passives
+C15,Generic,Various,Capacitor 0.1µF 10V X7R,1,0603,Passives
+C16,Generic,Various,Capacitor 10nF 10V X7R,1,0402,Passives
+R8,Generic,Various,Resistor 1kΩ,1,0603,Passives
+R9,Generic,Various,Resistor 10kΩ 1%,1,0603,Passives
+R10,Generic,Various,Resistor 10kΩ 1%,1,0603,Passives
+R11,Generic,Various,Resistor 100kΩ,1,0603,Passives
+C17,Generic,Various,Capacitor 0.1µF 10V X7R,1,0603,Passives
+C18,Generic,Various,Capacitor 10nF 10V X7R,1,0603,Passives
+U6,TDC7200,Texas Instruments,Time-to-digital converter 55ps resolution,1,VQFN-16,Digital
+U7,ESP32-C6-WROOM-1U,Espressif,WiFi/BLE/Zigbee MCU 160MHz RISC-V,1,Module,Digital
+Y1,Generic,Various,TCXO 16MHz ±1ppm,1,7x5mm,Digital
+C19,Generic,Various,Capacitor 0.1µF 10V X7R,1,0603,Passives
+C20,Generic,Various,Capacitor 10nF 10V X7R,1,0402,Passives
+C21,Generic,Various,Capacitor 0.1µF 10V X7R,1,0603,Passives
+R12,Generic,Various,Resistor 10kΩ,1,0603,Passives
+R13,Generic,Various,Resistor 10kΩ,1,0603,Passives
+R14,Generic,Various,Resistor 10kΩ,1,0603,Passives
+C22,Generic,Various,Capacitor 0.1µF 10V X7R,1,0603,Passives
+C23,Generic,Various,Capacitor 0.1µF 10V X7R,1,0603,Passives
+C24,Generic,Various,Capacitor 0.1µF 10V X7R,1,0603,Passives
+C25,Generic,Various,Capacitor 0.1µF 10V X7R,1,0603,Passives
+C26,Generic,Various,Capacitor 0.1µF 10V X7R,1,0603,Passives
+U8,Generic,Various,LDO 3.3V 100mA,1,SOT-23-5,Digital
+U9,BH1750 / VEML7700,Rohm / Vishay,Ambient light sensor I2C,1,6-pin SMD,Sensors
+U10,Generic,Various,DALI transceiver IC ISO compliant,1,SOIC-8,Sensors
+R15,Generic,Various,Resistor 4.7kΩ,1,0603,Passives
+R16,Generic,Various,Resistor 4.7kΩ,1,0603,Passives
+R17,Generic,Various,Resistor 220Ω,1,0603,Passives
+R18,Generic,Various,Resistor 10kΩ,1,0603,Passives
+C27,Generic,Various,Capacitor 0.1µF 10V X7R,1,0603,Passives
+D3,Generic,Various,Zener diode 3.3V,1,SOD-323,Sensors
+D4,Generic,Various,Schottky diode,1,SOD-323,Sensors
+J2,Generic,Various,DALI connector 2-pin terminal block,1,3.5mm pitch,Sensors
+C_SC1,CE5R5155VF-ZJ,Panasonic,Supercapacitor 1.5F 5.5V,1,Radial,Buffer
+U11,TPS3840PL27,Texas Instruments,Brownout supervisor 2.7V threshold,1,SOT-23-5,Buffer
+D_OR1,SS14,Various,Schottky OR-ing diode 40V 1A,1,SMA,Buffer
+D_OR2,SS14,Various,Schottky OR-ing diode 40V 1A,1,SMA,Buffer
+R19,Generic,Various,Resistor 100Ω 1W,1,2512,Buffer
+Q2,BSS138,Various,N-MOSFET Soft-start switch,1,SOT-23,Buffer
+R20,Generic,Various,Resistor 100kΩ,1,0603,Passives
+R21,Generic,Various,Resistor 10kΩ,1,0603,Passives
+C28,Generic,Various,Capacitor 0.1µF 10V X7R,1,0603,Passives
+R22,Generic,Various,Resistor 1kΩ 1/4W,1,0603,Passives
+U12,MCP4725,Microchip,12-bit DAC I2C,1,SOT-23-6,Outputs
+U13,OPA2350,Texas Instruments,Dual op-amp rail-to-rail,1,SOIC-8,Outputs
+Q3,Si2301,Vishay,P-MOSFET -20V -2.3A,1,SOT-23,Outputs
+Q4,BSS138,Various,N-MOSFET 50V 0.2A,1,SOT-23,Outputs
+R23,Generic,Various,Resistor 10kΩ,1,0603,Passives
+R24,Generic,Various,Resistor 3.3kΩ 1%,1,0603,Passives
+R25,Generic,Various,Resistor 1kΩ 1%,1,0603,Passives
+R26,Generic,Various,Resistor 10kΩ 1%,1,0603,Passives
+R27,Generic,Various,Resistor 1.1kΩ 1%,1,0603,Passives
+R28,Generic,Various,Resistor 10kΩ,1,0603,Passives
+C29,Generic,Various,Capacitor 0.1µF 10V X7R,1,0603,Passives
+C30,Generic,Various,Capacitor 0.1µF 10V X7R,1,0603,Passives
+C31,Generic,Various,Capacitor 1µF 25V X7R,1,0805,Passives
+J3,Generic,Various,Output connector 4-pin terminal block,1,3.5mm pitch,Outputs
