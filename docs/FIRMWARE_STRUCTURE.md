@@ -377,6 +377,8 @@ tdc_result_t tdc7200_read_result() {
 #define DALI_TX_PIN GPIO_NUM_8
 #define DALI_RX_PIN GPIO_NUM_9
 
+static QueueHandle_t uart_queue;
+
 esp_err_t dali_init() {
     uart_config_t uart_config = {
         .baud_rate = DALI_BAUD_RATE * 2, // 2400 for Manchester

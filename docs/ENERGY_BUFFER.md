@@ -234,13 +234,15 @@ typedef enum {
     CHARGE_COMPLETE       // Fully charged
 } charge_state_t;
 
+#define GPIO_SUPERCAP_CHARGE GPIO_NUM_15
+
 charge_state_t supercap_charge_state = CHARGE_IDLE;
 uint32_t charge_start_time = 0;
 
 void supercap_charge_init() {
     // Configure GPIO15 as output, set LOW (Q2 OFF)
-    gpio_set_direction(GPIO_NUM_15, GPIO_MODE_OUTPUT);
-    gpio_set_level(GPIO_NUM_15, 0);
+    gpio_set_direction(GPIO_SUPERCAP_CHARGE, GPIO_MODE_OUTPUT);
+    gpio_set_level(GPIO_SUPERCAP_CHARGE, 0);
     
     charge_start_time = millis();
     supercap_charge_state = CHARGE_SOFT_START;
@@ -255,7 +257,7 @@ void supercap_charge_update() {
             if (vcap_mv >= PRECHARGE_VOLTAGE_MV || 
                 elapsed_ms >= PRECHARGE_TIME_MS) {
                 // Activate Q2, enter fast charge
-                gpio_set_level(GPIO_NUM_15, 1);
+                gpio_set_level(GPIO_SUPERCAP_CHARGE, 1);
                 supercap_charge_state = CHARGE_FAST;
             }
             break;

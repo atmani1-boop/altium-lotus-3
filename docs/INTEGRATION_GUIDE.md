@@ -77,6 +77,10 @@ typedef struct {
 presence_state_t update_presence(presence_data_t *data, uint16_t new_distance) {
     uint32_t now_ms = millis();
     
+    // Update measurement data
+    data->distance_mm = new_distance;
+    data->timestamp_ms = now_ms;
+    
     // Check if distance indicates presence
     bool object_detected = (new_distance >= PRESENCE_THRESHOLD_MIN_MM) && 
                           (new_distance <= PRESENCE_THRESHOLD_MAX_MM);

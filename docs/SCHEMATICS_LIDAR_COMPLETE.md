@@ -535,7 +535,7 @@ Multiple output modes for lighting control: 0-10V, 1-10V analog dimming, and PWM
 | Designator | Part Number | Description | Value/Rating | Package |
 |-----------|-------------|-------------|--------------|---------|
 | U12 | MCP4725 | 12-bit DAC | I2C, 0-VDD output | SOT-23-6 |
-| U13 | OPA2350 | Dual op-amp | Rail-to-rail | SOIC-8 |
+| U13 | OPA2350 | Dual op-amp | Rail-to-rail (requires 12V external supply) | SOIC-8 |
 | Q3 | Si2301 | P-channel MOSFET | -20V, -2.3A | SOT-23 |
 | Q4 | BSS138 | N-channel MOSFET | 50V, 0.2A | SOT-23 |
 | R23 | Generic | DAC load resistor | 10kΩ | 0603 |
