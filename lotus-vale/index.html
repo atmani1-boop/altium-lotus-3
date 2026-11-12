@@ -63,8 +63,8 @@ kbd{background:#fff;border-radius:5px;padding:1px 6px;border:1px solid #ccc;font
   <label>Your character</label><div class="chars" id="chars"></div>
   <label>Your color (name tag)</label><div class="swatches" id="swatches"></div>
   <button id="bPlay" style="width:100%;font-size:20px;padding:14px">▶ Play</button>
-  <div style="font-size:13px;opacity:.75;text-align:center;margin-top:8px">You and your friend just press Play: you'll meet in the same world.</div>
-  <div class="row hidden"><button id="bNew">🌱 New world</button><button id="bJoin" class="alt">🤝 Join a friend</button></div>
+  <div style="font-size:13px;opacity:.75;text-align:center;margin:8px 0 10px">Quick play: you and your friend both press Play and meet in the same world.<br>Or use an invite code:</div>
+  <div class="row"><button id="bNew">🌱 New world (get a code)</button><button id="bJoin" class="alt">🤝 Join with a code</button></div>
   <div id="newPane" class="hidden"><hr><label>World name</label><input id="wname" maxlength="24" value="My Vale"><button id="bCreate" style="width:100%">Create &amp; open world</button></div>
   <div id="joinPane" class="hidden"><hr><label>Your friend's world code</label><input id="jcode" maxlength="8" placeholder="ABCDE" style="text-transform:uppercase;letter-spacing:3px"><button id="bGo" class="alt" style="width:100%">Join world</button></div>
   <div id="savedPane" class="hidden"><hr><label>Your saved worlds</label><div class="worlds" id="worlds"></div></div>
@@ -1599,7 +1599,7 @@ function startGame(w) {
   const a = Math.random() * 6.28; player.pos.set(Math.cos(a) * 3, 0, Math.sin(a) * 3 + 2); player.pos.y = groundAt(player.pos.x, player.pos.z, 50);
   player.av = makeAvatar(myCharG, profile.color, profile.name, true); scene.add(player.av.root);
   $('menu').classList.add('hidden'); ['info', 'tools', 'chat'].forEach(id => $(id).classList.remove('hidden'));
-  $('wtitle').textContent = '🪷 ' + w.name; $('codebox').classList.add('hidden');
+  $('wtitle').textContent = '🪷 ' + w.name; $('codebox').classList.toggle('hidden', !net.host || w.id === SHARED_ID); // invite code only for code worlds
   updatePlayerList(); inGame = true; cam.snap = true;
   if (!store.get('lv.helped', false)) { toggleHelp(true); store.set('lv.helped', true); }
   toast('🖱️ Click the world to look around with the mouse · Esc frees the cursor', 6000);
@@ -1639,6 +1639,7 @@ function renderWorlds() {
   const ws = loadWorlds(); $('savedPane').classList.toggle('hidden', !ws.length);
   $('worlds').innerHTML = ws.map((w, i) => `<div class="world"><span>🪷 ${esc(w.name)} <small style="opacity:.6">${(w.pieces || []).length} pieces</small></span><button data-p="${i}">Play</button><button class="ghost" data-d="${i}" title="Delete">🗑</button></div>`).join('');
 }
+renderWorlds();
 $('worlds').onclick = e => {
   const ws = loadWorlds(), p = e.target.dataset.p, d = e.target.dataset.d;
   if (p !== undefined) go(() => hostWorld(ws[+p]));
