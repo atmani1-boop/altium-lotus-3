@@ -414,6 +414,66 @@ const assetsReady = (async () => {
   status(bad === 0 ? 'Ready! 🌸' : bad < list.length ? `Ready (${bad} model(s) could not load, using simple shapes for those).` : 'Could not reach the 3D model servers, using simple shapes.');
 })();
 
+// ---------- real 3D models shipped with the game (CC0 packs by Quaternius & KayKit, see models/CREDITS.md) ----------
+// Served next to the page (GitHub Pages / any web server); when the page is opened as a local file,
+// the same files are fetched from this public GitHub repo instead.
+const REPO_RAW = 'https://raw.githubusercontent.com/atmani1-boop/altium-lotus-3/';
+const MODEL_BASES = [...(location.protocol.startsWith('http') ? ['models/'] : []), REPO_RAW + 'main/lotus-vale/models/', REPO_RAW + 'refs/heads/claude/chat-session-fu8f3k/lotus-vale/models/'];
+const modelCache = new Map();
+function loadModel(p) {
+  if (!modelCache.has(p)) modelCache.set(p, (async () => {
+    for (const b of MODEL_BASES) { try { return await loader.loadAsync(b + p); } catch (e) {} }
+    console.warn('model failed to load:', p); return null;
+  })());
+  return modelCache.get(p);
+}
+const toonCache = new Map();
+function toonFrom(m) { // keep each model's colours/texture but give it the cel-shaded look of the world
+  if (Array.isArray(m)) return m.map(toonFrom);
+  if (!toonCache.has(m)) toonCache.set(m, toon({ color: m.color ? m.color.clone() : 0xffffff, map: m.map || null, vertexColors: !!m.vertexColors, transparent: !!m.transparent, opacity: m.opacity ?? 1, alphaTest: m.alphaTest || 0, side: m.side ?? THREE.FrontSide, emissive: m.emissive ? m.emissive.clone() : 0x000000, emissiveMap: m.emissiveMap || null }));
+  return toonCache.get(m);
+}
+// Normalise a static model: base on y=0, centred on x/z, given height in metres, front turned toward +Z.
+function normMatrix(root, height, yaw = 0, yOff = 0) {
+  root.updateMatrixWorld(true);
+  const box = new THREE.Box3().setFromObject(root), c = box.getCenter(new V3()), s = height / Math.max(box.max.y - box.min.y, 1e-4);
+  return new THREE.Matrix4().makeRotationY(yaw).multiply(new THREE.Matrix4().makeScale(s, s, s)).multiply(new THREE.Matrix4().makeTranslation(-c.x, -box.min.y + yOff / s, -c.z));
+}
+// Bake every mesh of a static model into geometry+material parts that can be drawn with InstancedMesh.
+function modelParts(gltf, height, yaw = 0, sway = 0) {
+  if (!gltf) return null;
+  const T = normMatrix(gltf.scene, height, yaw), parts = [];
+  gltf.scene.traverse(o => {
+    if (!o.isMesh || o.isSkinnedMesh) return;
+    const geo = o.geometry.clone().applyMatrix4(new THREE.Matrix4().multiplyMatrices(T, o.matrixWorld));
+    let mat = toonFrom(o.material);
+    if (sway) { mat = Array.isArray(mat) ? mat.map(x => swayed(x, sway)) : swayed(mat, sway); }
+    parts.push({ geo, mat });
+  });
+  const box = new THREE.Box3(); for (const p of parts) { p.geo.computeBoundingBox(); box.union(p.geo.boundingBox); }
+  return { parts, box };
+}
+const swayCache = new Map();
+function swayed(m, amt) { const k = m.uuid + amt; if (!swayCache.has(k)) { const c = m.clone(); addSway(c, amt); swayCache.set(k, c); } return swayCache.get(k); }
+// Draw many copies of a model: list of {x,y,z,ry,s} -> InstancedMeshes (one per part).
+function instanceModel(mp, list, { shadow = true, tint = 0 } = {}) {
+  if (!mp || !list.length) return [];
+  const out = [];
+  for (const p of mp.parts) {
+    const im = new THREE.InstancedMesh(p.geo, p.mat, list.length);
+    list.forEach((t, i) => { m4.compose(tmp.set(t.x, t.y, t.z), q.setFromAxisAngle(UP, t.ry || 0), sv.setScalar(t.s || 1)); if (t.sy) sv.y *= t.sy; im.setMatrixAt(i, m4); if (tint) im.setColorAt(i, col.setScalar(1 - tint / 2 + Math.random() * tint)); });
+    im.castShadow = shadow; im.receiveShadow = true; scene.add(im); out.push(im);
+  }
+  return out;
+}
+// Live (non-instanced) copy of a static model, normalised — used for build pieces and props.
+function modelClone(gltf, height, yaw = 0, yOff = 0) {
+  const T = normMatrix(gltf.scene, height, yaw, yOff), g = new THREE.Group(), inner = gltf.scene.clone(true);
+  inner.applyMatrix4(T); g.add(inner);
+  inner.traverse(o => { if (o.isMesh) { o.material = toonFrom(o.material); o.castShadow = o.receiveShadow = true; } });
+  return g;
+}
+
 function guessYaw(model, box) { // point the model's head toward +z (long body axis, head = highest point)
   const sx = box.max.x - box.min.x, sz = box.max.z - box.min.z, axisX = sx >= sz, c = box.getCenter(new V3());
   let best = -Infinity; const hp = new V3(), v = new V3();
