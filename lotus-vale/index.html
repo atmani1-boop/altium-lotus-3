@@ -62,7 +62,9 @@ kbd{background:#fff;border-radius:5px;padding:1px 6px;border:1px solid #ccc;font
   <label>Your name</label><input id="pname" maxlength="16" placeholder="Your name">
   <label>Your character</label><div class="chars" id="chars"></div>
   <label>Your color (name tag)</label><div class="swatches" id="swatches"></div>
-  <div class="row"><button id="bNew">🌱 New world</button><button id="bJoin" class="alt">🤝 Join a friend</button></div>
+  <button id="bPlay" style="width:100%;font-size:20px;padding:14px">▶ Play</button>
+  <div style="font-size:13px;opacity:.75;text-align:center;margin-top:8px">You and your friend just press Play: you'll meet in the same world.</div>
+  <div class="row hidden"><button id="bNew">🌱 New world</button><button id="bJoin" class="alt">🤝 Join a friend</button></div>
   <div id="newPane" class="hidden"><hr><label>World name</label><input id="wname" maxlength="24" value="My Vale"><button id="bCreate" style="width:100%">Create &amp; open world</button></div>
   <div id="joinPane" class="hidden"><hr><label>Your friend's world code</label><input id="jcode" maxlength="8" placeholder="ABCDE" style="text-transform:uppercase;letter-spacing:3px"><button id="bGo" class="alt" style="width:100%">Join world</button></div>
   <div id="savedPane" class="hidden"><hr><label>Your saved worlds</label><div class="worlds" id="worlds"></div></div>
@@ -79,12 +81,12 @@ kbd{background:#fff;border-radius:5px;padding:1px 6px;border:1px solid #ccc;font
 <div id="chat" class="hud hidden"><div id="log"></div><input id="chatin" class="hidden" maxlength="200" placeholder="Say something… (Enter to send)"></div>
 <div id="help" class="hud hidden"><b>🌿 How to play</b><br>
   Move: <kbd>W A S D</kbd> / <kbd>Z Q S D</kbd> / arrows · Run: <kbd>Shift</kbd> · Jump / swim: <kbd>Space</kbd><br>
-  Look around: drag with the mouse · Zoom: mouse wheel<br>
+  Look around: click the world, then move the mouse (Esc frees the cursor)<br>
   Build: <kbd>B</kbd>, then pick a piece with <kbd>1</kbd>–<kbd>0</kbd> · Place: click · Rotate: <kbd>R</kbd> · Remove: right-click or <kbd>X</kbd><br>
   Walls, doors and windows snap to the floor edges. Roofs go on top of the walls when you aim inside the room.<br>
   Emotes: <kbd>1</kbd> wave · <kbd>2</kbd> dance · <kbd>3</kbd> yes · <kbd>4</kbd> no<br>
   Build tabs: <kbd>Tab</kbd> switches House · Furniture · Garden · Nature<br>
-  Talk to villagers: walk up and press <kbd>E</kbd> · First person view: <kbd>V</kbd><br>
+  Talk to villagers: walk up and press <kbd>E</kbd><br>
   Chat: <kbd>Enter</kbd> · Music: <kbd>M</kbd> · This help: <kbd>H</kbd><br>
   <i>Your world saves on its own. Open it again from the menu any time.</i><br>
   <button id="hClose" style="margin-top:8px">Got it</button></div>
@@ -1311,7 +1313,7 @@ const sfx = {
 
 // ---------- player & camera ----------
 const player = { pos: new V3(), vel: new V3(), vy: 0, yaw: 0, grounded: true, swim: false, emote: null, av: null, step: 0, onWood: false };
-const cam = { yaw: 0.7, pitch: 0.32, dist: 7.5, snap: true, fp: false, fpPitch: 0 };
+const cam = { yaw: 0.7, pitch: 0.32, dist: 7.5, snap: true, fp: true, fpPitch: 0 };
 const K = {}; let jumpReq = false;
 const EMOTES = ['Wave', 'Dance', 'Yes', 'No'];
 function updatePlayer(dt) {
@@ -1385,10 +1387,57 @@ const net = { peer: null, host: false, conns: new Map(), hostConn: null,
 };
 function peerOpts() {
   const o = { debug: 1 };
+  if (params.get('noturn')) o.config = { iceServers: [] }; // local testing only
   if (params.get('peerhost')) Object.assign(o, { host: params.get('peerhost'), port: +(params.get('peerport') || 9000), path: params.get('peerpath') || '/', secure: params.get('peersecure') === '1' });
   return o;
 }
 const genCode = () => Array.from({ length: 5 }, () => 'ABCDEFGHJKMNPQRSTUVWXYZ23456789'[Math.random() * 31 | 0]).join('');
+// ---------- one shared world: press Play, the first one in hosts, the next one joins automatically ----------
+const ROOM = 'ourvale-k7q2m9x4', SHARED_ID = 'ourvale';
+const sharedWorld = () => loadWorlds().find(w => w.id === SHARED_ID) || { id: SHARED_ID, name: 'Our Vale', seed: 517204, pieces: [], time: 0.3 };
+function tryJoin(code, ms) { // true once inside the friend's world, false if nobody is hosting
+  return new Promise(res => {
+    const peer = new Peer(undefined, peerOpts()); let done = false, joined = false;
+    const fin = v => { if (done) return; done = true; clearTimeout(tm); if (!v) { try { peer.destroy(); } catch (e) {} } res(v); };
+    const tm = setTimeout(() => fin(false), ms);
+    peer.on('open', id => {
+      myId = id; const conn = peer.connect(PREFIX + code, { reliable: true, serialization: 'json' });
+      conn.on('open', () => conn.send({ t: 'hello', name: profile.name, color: profile.color, char: profile.char }));
+      conn.on('data', d => {
+        if (d && d.t === 'welcome' && !done) { joined = true; net.peer = peer; net.hostConn = conn; net.host = false; fin(true); }
+        if (!joined) return; try { onGuestData(d); } catch (err) { console.error('guest data', err); }
+      });
+      conn.on('close', () => { if (joined) hostLost(); });
+    });
+    peer.on('error', () => { if (!done) fin(false); else if (joined && inGame) hostLost(); });
+  });
+}
+function openHost(code) { // 'ok' | 'taken' (someone else is hosting) | 'offline'
+  return new Promise(res => {
+    const peer = new Peer(PREFIX + code, peerOpts()); let settled = false;
+    const end = r => { if (settled) return; settled = true; if (r !== 'ok') { try { peer.destroy(); } catch (x) {} } res(r); };
+    peer.on('open', () => { if (settled) return; net.peer = peer; net.host = true; myId = 'host'; startGame(sharedWorld()); end('ok'); });
+    peer.on('error', e => end(e.type === 'unavailable-id' ? 'taken' : 'offline'));
+    peer.on('connection', conn => {
+      conn.on('data', d => { try { onHostData(conn, d); } catch (err) { console.error('host data', err); } });
+      conn.on('close', () => dropPlayer(conn.peer)); conn.on('error', () => dropPlayer(conn.peer));
+    });
+    setTimeout(() => end('offline'), 15000);
+  });
+}
+function playSolo(why) { net.host = true; myId = 'host'; startGame(sharedWorld()); toast(why, 6000); }
+async function play() {
+  if (typeof Peer === 'undefined') return playSolo('Multiplayer could not load, playing solo.');
+  for (let attempt = 0; attempt < 3; attempt++) {
+    status('Looking for your friend…');
+    if (await tryJoin(ROOM, attempt ? 20000 : 9000)) return;
+    status('Opening the world…');
+    const r = await openHost(ROOM);
+    if (r === 'ok') return;
+    if (r === 'offline') return playSolo('Multiplayer is unreachable right now, playing solo.');
+  }
+  status('Could not connect, please press Play again.');
+}
 function hostWorld(w) {
   net.host = true; myId = 'host'; startGame(w);
   if (typeof Peer === 'undefined') { setCode('offline'); toast('Multiplayer library could not load. You can still play solo.'); return; }
@@ -1444,7 +1493,7 @@ function joinWorld(code) {
 }
 function onGuestData(d) {
   if (!d || typeof d !== 'object') return;
-  if (d.t === 'welcome') { if (inGame) return; startGame({ ...d.world, id: 'guest' }); for (const p of d.players || []) addRemote(p); sysMsg(`You joined ${esc(d.world.name)} 🌿`); }
+  if (d.t === 'welcome') { if (inGame) return; startGame({ ...d.world, id: SHARED_ID }); for (const p of d.players || []) addRemote(p); sysMsg(`You joined ${esc(d.world.name)} 🌿`); }
   else if (!inGame) return;
   else if (d.t === 'join') { addRemote(d); sysMsg(`${d.name} joined the world 🌿`); }
   else if (d.t === 'leave') { const r = remotes.get(d.id); if (r) sysMsg(`${r.name} left the world`); removeRemote(d.id); }
@@ -1455,7 +1504,7 @@ function onGuestData(d) {
   else if (d.t === 'time') dayTime = +d.v || 0;
 }
 let lostShown = false;
-function hostLost() { if (lostShown || !inGame) return; lostShown = true; sysMsg('The host closed the world. Press 🚪 to go back to the menu.'); toast('The host closed the world 🌙', 6000); }
+function hostLost() { if (lostShown || !inGame) return; lostShown = true; saveWorld(); sysMsg('Your friend closed the game. Press 🚪 and then Play to keep playing (you will host the world).'); toast('The host closed the world 🌙', 6000); }
 function addRemote(p) {
   if (remotes.has(p.id) || p.id === myId) return;
   const r = { id: p.id, name: String(p.name || 'Friend').slice(0, 16), color: safeColor(p.color), char: charKey(p.char), av: null, tp: new V3(), tr: 0, a: 'Idle', seen: false, s: null };
@@ -1537,7 +1586,7 @@ function sendChat() {
 // ---------- worlds & saving ----------
 const loadWorlds = () => store.get('lv.worlds', []);
 function saveWorld() {
-  if (!net.host || !W || !inGame) return;
+  if (!W || !inGame) return; // host and guests both keep a copy, so whoever hosts next has the latest world
   W.pieces = [...pieces.values()].map(p => p.rec); W.time = dayTime; W.saved = Date.now();
   store.set('lv.worlds', [W, ...loadWorlds().filter(x => x.id !== W.id)]);
 }
@@ -1550,9 +1599,10 @@ function startGame(w) {
   const a = Math.random() * 6.28; player.pos.set(Math.cos(a) * 3, 0, Math.sin(a) * 3 + 2); player.pos.y = groundAt(player.pos.x, player.pos.z, 50);
   player.av = makeAvatar(myCharG, profile.color, profile.name, true); scene.add(player.av.root);
   $('menu').classList.add('hidden'); ['info', 'tools', 'chat'].forEach(id => $(id).classList.remove('hidden'));
-  $('wtitle').textContent = '🪷 ' + w.name; $('codebox').classList.toggle('hidden', !net.host);
+  $('wtitle').textContent = '🪷 ' + w.name; $('codebox').classList.add('hidden');
   updatePlayerList(); inGame = true; cam.snap = true;
   if (!store.get('lv.helped', false)) { toggleHelp(true); store.set('lv.helped', true); }
+  toast('🖱️ Click the world to look around with the mouse · Esc frees the cursor', 6000);
 }
 function buildWorldAll(seed) {
   const R = rng(seed); perlin = new ImprovedNoise(); OX = R() * 500; OZ = R() * 500; SZ = R() * 50;
@@ -1581,6 +1631,7 @@ profile.char = charKey(profile.char);
 $('chars').innerHTML = Object.entries(CHARS).map(([k, [label]]) => `<div class="ch${k === profile.char ? ' on' : ''}" data-k="${k}">${label}</div>`).join('');
 $('chars').onclick = e => { const k = e.target.dataset.k; if (!k) return; profile.char = k; getChar(k); [...$('chars').children].forEach(c => c.classList.toggle('on', c.dataset.k === k)); };
 getChar(profile.char);
+$('bPlay').onclick = () => go(play);
 $('bCreate').onclick = () => go(() => hostWorld({ id: 'w' + Date.now(), name: $('wname').value.trim() || 'My Vale', seed: Math.random() * 1e9 | 0, pieces: [], time: 0.3 }));
 $('bGo').onclick = () => go(() => joinWorld($('jcode').value));
 $('jcode').onkeydown = e => { if (e.key === 'Enter') $('bGo').click(); };
@@ -1593,7 +1644,6 @@ $('worlds').onclick = e => {
   if (p !== undefined) go(() => hostWorld(ws[+p]));
   if (d !== undefined && confirm(`Delete "${ws[+d].name}" forever?`)) { ws.splice(+d, 1); store.set('lv.worlds', ws); renderWorlds(); }
 };
-renderWorlds();
 
 // ---------- input ----------
 addEventListener('keydown', e => {
@@ -1607,7 +1657,7 @@ addEventListener('keydown', e => {
   if (e.key === 'Tab' && buildMode) { e.preventDefault(); selectCat(cat + (e.shiftKey ? -1 : 1)); }
   if (k === 'x' && buildMode) tryRemove();
   if (k === 'h') toggleHelp();
-  if (k === 'v') { cam.fp = !cam.fp; cam.fpPitch = 0; cam.snap = true; toast(cam.fp ? '👁️ First person — click the world to look around with the mouse (Esc to free the cursor)' : '🎥 Third person'); if (!cam.fp && document.pointerLockElement) document.exitPointerLock(); }
+  if (k === 'v' && false) { cam.fp = !cam.fp; cam.fpPitch = 0; cam.snap = true; toast(cam.fp ? '👁️ First person — click the world to look around with the mouse (Esc to free the cursor)' : '🎥 Third person'); if (!cam.fp && document.pointerLockElement) document.exitPointerLock(); }
   if (k === 'e') { if (talking) talkTo(talking); else if (nearNPC) talkTo(nearNPC); }
   if (e.key === 'Escape') closeTalk();
   if (k === 'm') $('tMusic').click();
@@ -1635,7 +1685,7 @@ canvas.addEventListener('wheel', e => { cam.dist = clamp(cam.dist * (1 + Math.si
 const clock = new THREE.Clock(); let clockT = 0;
 function frame() {
   requestAnimationFrame(frame);
-  const dt = Math.min(clock.getDelta(), 0.05); if (!inGame) return;
+  const dt = Math.min(clock.getDelta(), 0.05); if (!inGame || window.__lvPause) return; // __lvPause: automated tests only
   U.time.value += dt; dayTime = (dayTime + dt / DAY_LEN) % 1;
   updatePlayer(dt); updateCamera(dt); updateSky(dt); updateRemotes(dt); updateLife(dt); updateNature(dt); updateVillagers(dt); updateGhost(); updateLights(dt);
   sfx.update(dt, env); netTick(dt);
