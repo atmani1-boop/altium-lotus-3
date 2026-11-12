@@ -18,10 +18,12 @@ Your world is saved in your browser. Open it again from **Your saved worlds** an
 | Camera | drag with the mouse, wheel to zoom |
 | Build | **B**, pick a piece with 1–0, click to place, R to rotate, right-click or X to remove |
 | Emotes | 1 wave · 2 dance · 3 sit · 4 thumbs-up · 5 yes · 6 no · 7 nap |
-| Other | Enter to chat, M for music, H for help |
+| Other | Enter to chat, M for music, ✨ for graphics, H for help |
 
 ## Credits
 
-- 3D models are loaded from the internet: *RobotExpressive*, *Parrot*, *Flamingo*, *Stork* and *Horse* from the three.js examples, and *Fox* from the Khronos glTF sample models. Trees, rocks, flowers and house pieces are generated in code.
+- Player characters: [KayKit Character Pack: Adventurers](https://github.com/KayKit-Game-Assets/KayKit-Character-Pack-Adventures-1.0) by Kay Lousberg (CC0). You pick Rogue, Hooded, Mage, Knight or Barbarian in the menu. If those can't be loaded, the game falls back to the *Soldier* model from the three.js examples.
+- Animals are loaded from the internet: *Parrot*, *Flamingo*, *Stork* and *Horse* from the three.js examples, and *Fox* from the Khronos glTF sample models. Trees, rocks, flowers and house pieces are generated in code.
+- Graphics: 4× MSAA + SMAA anti-aliasing, soft bloom glow, ACES filmic colors and toon shading. Press ✨ to turn them off on slower computers.
 - All sounds and music are synthesized live in the browser (Web Audio). They are original, not from any game.
 - Built with [three.js](https://threejs.org) and [PeerJS](https://peerjs.com) (peer-to-peer multiplayer).

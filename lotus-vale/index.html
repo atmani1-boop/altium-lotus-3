@@ -24,6 +24,9 @@ button.ghost{background:transparent;color:var(--ink);box-shadow:none;padding:4px
 .swatches{display:flex;gap:8px;margin:6px 0 14px}
 .sw{width:30px;height:30px;border-radius:50%;cursor:pointer;border:3px solid transparent}
 .sw.on{border-color:#3b3a30}
+.chars{display:flex;flex-wrap:wrap;gap:6px;margin:6px 0 14px}
+.ch{padding:6px 10px;border-radius:10px;background:#fff;cursor:pointer;border:3px solid transparent;font-size:14px}
+.ch.on{border-color:#e0a458}
 .worlds{max-height:150px;overflow:auto;margin:6px 0}
 .world{display:flex;align-items:center;gap:8px;padding:6px 8px;border-radius:10px;background:#fff;margin-bottom:6px}
 .world span{flex:1}
@@ -51,7 +54,8 @@ kbd{background:#fff;border-radius:5px;padding:1px 6px;border:1px solid #ccc;font
 <div id="menu"><div class="card">
   <h1>🪷 Lotus Vale</h1><div class="sub">a cozy little world to share with friends</div>
   <label>Your name</label><input id="pname" maxlength="16" placeholder="Your name">
-  <label>Your color</label><div class="swatches" id="swatches"></div>
+  <label>Your character</label><div class="chars" id="chars"></div>
+  <label>Your color (name tag)</label><div class="swatches" id="swatches"></div>
   <div class="row"><button id="bNew">🌱 New world</button><button id="bJoin" class="alt">🤝 Join a friend</button></div>
   <div id="newPane" class="hidden"><hr><label>World name</label><input id="wname" maxlength="24" value="My Vale"><button id="bCreate" style="width:100%">Create &amp; open world</button></div>
   <div id="joinPane" class="hidden"><hr><label>Your friend's world code</label><input id="jcode" maxlength="8" placeholder="ABCDE" style="text-transform:uppercase;letter-spacing:3px"><button id="bGo" class="alt" style="width:100%">Join world</button></div>
@@ -63,7 +67,7 @@ kbd{background:#fff;border-radius:5px;padding:1px 6px;border:1px solid #ccc;font
   <div id="codebox">Invite code: <span id="code">…</span> <button class="ghost" id="bCopy" title="Copy">📋</button>
   <div style="font-size:12px;opacity:.7">Send this code to your friend so they can join.</div></div>
   <div id="plist"></div><div id="clock"></div></div>
-<div id="tools" class="hud hidden"><button id="tBuild" title="Build (B)">🔨</button><button id="tMusic" title="Music (M)">🎵</button><button id="tHelp" title="Help (H)">❔</button><button id="tLeave" title="Save &amp; leave">🚪</button></div>
+<div id="tools" class="hud hidden"><button id="tBuild" title="Build (B)">🔨</button><button id="tMusic" title="Music (M)">🎵</button><button id="tFx" title="Pretty graphics on/off">✨</button><button id="tHelp" title="Help (H)">❔</button><button id="tLeave" title="Save &amp; leave">🚪</button></div>
 <div id="hotbar" class="hud hidden"></div>
 <div id="buildtip" class="hud hidden">Click to place · Right-click or X to remove · R rotate · B / Esc to stop building</div>
 <div id="chat" class="hud hidden"><div id="log"></div><input id="chatin" class="hidden" maxlength="200" placeholder="Say something… (Enter to send)"></div>
@@ -86,6 +90,11 @@ import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import * as SkeletonUtils from 'three/addons/utils/SkeletonUtils.js';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 import { ImprovedNoise } from 'three/addons/math/ImprovedNoise.js';
+import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
+import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
+import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
+import { SMAAPass } from 'three/addons/postprocessing/SMAAPass.js';
+import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
 
 // ---------- helpers ----------
 const $ = id => document.getElementById(id);
@@ -118,7 +127,16 @@ const hemi = new THREE.HemisphereLight(0xd7ecff, 0x3a5a2a, 1.2); scene.add(hemi)
 const sun = new THREE.DirectionalLight(0xfff3dc, 2.5); sun.castShadow = true; sun.shadow.mapSize.set(2048, 2048);
 Object.assign(sun.shadow.camera, { left: -45, right: 45, top: 45, bottom: -45, near: 1, far: 260 });
 sun.shadow.bias = -0.0004; sun.shadow.normalBias = 0.04; scene.add(sun, sun.target);
-addEventListener('resize', () => { camera.aspect = innerWidth / innerHeight; camera.updateProjectionMatrix(); renderer.setSize(innerWidth, innerHeight); });
+// pretty graphics: 4x MSAA + SMAA anti-aliasing, soft bloom glow, filmic colors
+renderer.toneMapping = THREE.ACESFilmicToneMapping; renderer.toneMappingExposure = 1.15;
+const fx = { on: store.get('lv.fx', true) };
+const composer = new EffectComposer(renderer, new THREE.WebGLRenderTarget(innerWidth, innerHeight, { type: THREE.HalfFloatType, samples: 4 }));
+composer.setPixelRatio(renderer.getPixelRatio()); composer.setSize(innerWidth, innerHeight);
+composer.addPass(new RenderPass(scene, camera));
+composer.addPass(new UnrealBloomPass(new THREE.Vector2(innerWidth, innerHeight), 0.35, 0.6, 0.9));
+composer.addPass(new OutputPass());
+composer.addPass(new SMAAPass(innerWidth * renderer.getPixelRatio(), innerHeight * renderer.getPixelRatio()));
+addEventListener('resize', () => { camera.aspect = innerWidth / innerHeight; camera.updateProjectionMatrix(); renderer.setSize(innerWidth, innerHeight); composer.setSize(innerWidth, innerHeight); });
 const U = { time: { value: 0 } };
 const grad = new THREE.DataTexture(new Uint8Array([95, 95, 95, 255, 165, 165, 165, 255, 225, 225, 225, 255, 255, 255, 255, 255]), 4, 1);
 grad.minFilter = grad.magFilter = THREE.NearestFilter; grad.needsUpdate = true;
@@ -308,11 +326,12 @@ function setGrassM(i, hide) {
 }
 function makeGrass(R) {
   const g = new THREE.BufferGeometry();
-  g.setAttribute('position', new THREE.Float32BufferAttribute([-0.07, 0, 0, 0.07, 0, 0, 0.01, 0.62, 0.02], 3));
-  g.setAttribute('normal', new THREE.Float32BufferAttribute([0, 1, 0, 0, 1, 0, 0, 1, 0], 3));
+  // front + back triangle, all normals pointing up, so both sides are lit softly like the ground
+  g.setAttribute('position', new THREE.Float32BufferAttribute([-0.07, 0, 0, 0.07, 0, 0, 0.01, 0.62, 0.02, -0.07, 0, 0, 0.01, 0.62, 0.02, 0.07, 0, 0], 3));
+  g.setAttribute('normal', new THREE.Float32BufferAttribute(Array(6).fill([0, 1, 0]).flat(), 3));
   const a = new THREE.Color('#3d7a2c'), b = new THREE.Color('#b9dc6c');
-  g.setAttribute('color', new THREE.Float32BufferAttribute([a.r, a.g, a.b, a.r, a.g, a.b, b.r, b.g, b.b], 3));
-  const mat = new THREE.MeshLambertMaterial({ vertexColors: true, side: THREE.DoubleSide }); addSway(mat, 0.3);
+  g.setAttribute('color', new THREE.Float32BufferAttribute([a.r, a.g, a.b, a.r, a.g, a.b, b.r, b.g, b.b, a.r, a.g, a.b, b.r, b.g, b.b, a.r, a.g, a.b], 3));
+  const mat = new THREE.MeshLambertMaterial({ vertexColors: true }); addSway(mat, 0.3);
   grass = new THREE.InstancedMesh(g, mat, GRASS_N); grassData = new Float32Array(GRASS_N * 5); grassHidden = new Uint8Array(GRASS_N);
   let k = 0, tries = 0;
   while (k < GRASS_N && tries++ < GRASS_N * 5) {
@@ -371,13 +390,23 @@ function makeLotus(R) {
 const TJ = 'https://threejs.org/examples/models/gltf/', JD = 'https://cdn.jsdelivr.net/gh/mrdoob/three.js@r160/examples/models/gltf/';
 const both = p => [TJ + p, JD + p];
 const MODEL_URLS = {
-  robot: both('RobotExpressive/RobotExpressive.glb'), parrot: both('Parrot.glb'), flamingo: both('Flamingo.glb'), stork: both('Stork.glb'), horse: both('Horse.glb'),
+  parrot: both('Parrot.glb'), flamingo: both('Flamingo.glb'), stork: both('Stork.glb'), horse: both('Horse.glb'),
   fox: ['https://raw.githubusercontent.com/KhronosGroup/glTF-Sample-Assets/main/Models/Fox/glTF-Binary/Fox.glb',
     'https://raw.githubusercontent.com/KhronosGroup/glTF-Sample-Models/main/2.0/Fox/glTF-Binary/Fox.glb',
     'https://raw.githubusercontent.com/KhronosGroup/glTF-Sample-Models/master/2.0/Fox/glTF-Binary/Fox.glb'],
 };
 const assets = {}, loader = new GLTFLoader();
 async function loadAny(urls) { for (const u of urls) { try { return await loader.loadAsync(u); } catch (e) {} } return null; }
+// Human characters: KayKit Adventurers (CC0, Kay Lousberg). Fallback: three.js "Soldier" human.
+const KAY = 'KayKit-Game-Assets/KayKit-Character-Pack-Adventures-1.0', KPATH = 'addons/kaykit_character_pack_adventures/Characters/gltf/';
+const CHARS = { rogue: ['🧝 Rogue', 'Rogue'], hooded: ['🧥 Hooded', 'Rogue_Hooded'], mage: ['🧙 Mage', 'Mage'], knight: ['🛡️ Knight', 'Knight'], barbarian: ['🪓 Barbarian', 'Barbarian'] };
+const charKey = k => CHARS[k] ? k : 'rogue';
+const charCache = {}; let soldierP = null, myCharG = null;
+const getSoldier = () => soldierP || (soldierP = loadAny(both('Soldier.glb')));
+function getChar(k) {
+  k = charKey(k);
+  return charCache[k] || (charCache[k] = (async () => (await loadAny([`https://raw.githubusercontent.com/${KAY}/main/${KPATH}${CHARS[k][1]}.glb`, `https://cdn.jsdelivr.net/gh/${KAY}@main/${KPATH}${CHARS[k][1]}.glb`])) || await getSoldier())());
+}
 const assetsReady = (async () => {
   const list = Object.entries(MODEL_URLS); let done = 0;
   await Promise.all(list.map(async ([k, urls]) => { assets[k] = await loadAny(urls); status(`Gathering 3D models from the internet… ${++done}/${list.length}`); }));
@@ -410,14 +439,32 @@ function nameTag(text, color) {
   const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace;
   const s = new THREE.Sprite(new THREE.SpriteMaterial({ map: t, transparent: true })); s.scale.set(1.6, 0.4, 1); return s;
 }
-const ONCE = ['Jump', 'Wave', 'ThumbsUp', 'Yes', 'No', 'Sitting', 'Death', 'Punch'];
-function makeAvatar(color, name, isLocal) {
+// map whatever clips a model has onto our animation names
+function pickClips(anims) {
+  const find = (...res) => { for (const re of res) { const c = anims.find(a => re.test(a.name)); if (c) return c; } return null; };
+  return {
+    Idle: find(/^idle$/i, /^idle/i, /idle/i), Walking: find(/^walking_a$/i, /^walk/i, /walk/i), Running: find(/^running_a$/i, /^run/i, /run/i),
+    Jump: find(/^jump_full_short$/i, /^jump_idle$/i, /jump/i), Wave: find(/wave/i, /cheer/i, /interact/i), Dance: find(/dance/i, /cheer/i),
+    Sitting: find(/sit_floor_idle/i, /sit.*idle/i, /sit/i), ThumbsUp: find(/thumb/i, /cheer/i), Yes: find(/^yes$/i, /interact/i, /use_item/i),
+    No: find(/^no$/i, /block/i), Death: find(/lie_idle/i, /^lie/i, /death_a_pose/i, /death/i),
+  };
+}
+const HIDE = /sword|axe|shield|staff|wand|dagger|crossbow|knife|spellbook|mug|throwable|arrow|quiver/i;
+function makeAvatar(gltf, color, name, isLocal) {
   const root = new THREE.Group(); let mixer = null; const actions = {};
-  if (assets.robot) {
-    const o = cloneModel(assets.robot, 1.55); mixer = o.mixer; root.add(o.root);
-    o.model.traverse(m => { if (m.isMesh) { m.material = m.material.clone(); if (/main/i.test(m.material.name)) m.material.color.set(color); } });
-    for (const clip of o.anims) actions[clip.name] = mixer.clipAction(clip);
-    ONCE.forEach(n => { const a = actions[n]; if (a) { a.setLoop(THREE.LoopOnce); a.clampWhenFinished = true; } });
+  if (gltf) {
+    const o = cloneModel(gltf, 1.7); mixer = o.mixer; root.add(o.root);
+    o.model.traverse(m => {
+      if (!m.isMesh) return;
+      if (HIDE.test(m.name)) { m.visible = false; return; }
+      const s = m.material; m.material = toon({ map: s.map || null, color: s.color ? s.color.clone() : 0xffffff, transparent: s.transparent, alphaTest: s.alphaTest });
+    });
+    const clips = pickClips(o.anims);
+    for (const [n, clip] of Object.entries(clips)) {
+      if (!clip) continue; const a = actions[n] = mixer.clipAction(clip);
+      const loops = ['Idle', 'Walking', 'Running', 'Dance'].includes(n) || (n === 'Sitting' && /idle/i.test(clip.name)) || (n === 'Death' && /lie/i.test(clip.name));
+      if (!loops) { a.setLoop(THREE.LoopOnce); a.clampWhenFinished = true; }
+    }
   } else {
     const b = new THREE.Mesh(new THREE.CapsuleGeometry(0.32, 0.7, 4, 10), toon({ color })); b.position.y = 0.67;
     const hd = new THREE.Mesh(new THREE.SphereGeometry(0.28, 16, 12), toon({ color: '#fbe3c8' })); hd.position.y = 1.38;
@@ -862,10 +909,10 @@ function onHostData(conn, d) {
   const r = remotes.get(conn.peer);
   if (d.t === 'hello') {
     if (r) return;
-    const pl = { id: conn.peer, name: String(d.name || 'Friend').slice(0, 16), color: safeColor(d.color) };
+    const pl = { id: conn.peer, name: String(d.name || 'Friend').slice(0, 16), color: safeColor(d.color), char: charKey(d.char) };
     net.conns.set(conn.peer, conn);
     conn.send({ t: 'welcome', id: conn.peer, world: { name: W.name, seed: W.seed, pieces: [...pieces.values()].map(x => x.rec), time: dayTime },
-      players: [{ id: 'host', name: profile.name, color: profile.color, s: myState() }, ...[...remotes.values()].map(x => ({ id: x.id, name: x.name, color: x.color, s: x.s }))] });
+      players: [{ id: 'host', name: profile.name, color: profile.color, char: profile.char, s: myState() }, ...[...remotes.values()].map(x => ({ id: x.id, name: x.name, color: x.color, char: x.char, s: x.s }))] });
     addRemote(pl); net.broadcast({ t: 'join', ...pl }, conn.peer); sysMsg(`${pl.name} joined the world 🌿`); sfx.chime(); return;
   }
   if (!r) return;
@@ -886,7 +933,7 @@ function joinWorld(code) {
   const timer = setTimeout(() => { if (!inGame) status('Could not reach that world. Is your friend\'s game open?'); }, 20000);
   peer.on('open', id => {
     myId = id; const conn = peer.connect(PREFIX + code, { reliable: true, serialization: 'json' }); net.hostConn = conn;
-    conn.on('open', () => conn.send({ t: 'hello', name: profile.name, color: profile.color }));
+    conn.on('open', () => conn.send({ t: 'hello', name: profile.name, color: profile.color, char: profile.char }));
     conn.on('data', d => { if (d && d.t === 'welcome') clearTimeout(timer); try { onGuestData(d); } catch (err) { console.error('guest data', err); } });
     conn.on('close', hostLost);
   });
@@ -908,17 +955,21 @@ let lostShown = false;
 function hostLost() { if (lostShown || !inGame) return; lostShown = true; sysMsg('The host closed the world. Press 🚪 to go back to the menu.'); toast('The host closed the world 🌙', 6000); }
 function addRemote(p) {
   if (remotes.has(p.id) || p.id === myId) return;
-  const r = { id: p.id, name: String(p.name || 'Friend').slice(0, 16), color: safeColor(p.color), av: makeAvatar(safeColor(p.color), p.name || 'Friend', false), tp: new V3(), tr: 0, a: 'Idle', seen: false, s: null };
-  r.av.root.visible = false; scene.add(r.av.root); remotes.set(p.id, r); if (p.s) setRemoteState(r, p.s); updatePlayerList();
+  const r = { id: p.id, name: String(p.name || 'Friend').slice(0, 16), color: safeColor(p.color), char: charKey(p.char), av: null, tp: new V3(), tr: 0, a: 'Idle', seen: false, s: null };
+  remotes.set(p.id, r); if (p.s) setRemoteState(r, p.s); updatePlayerList();
+  getChar(r.char).then(g => {
+    if (remotes.get(p.id) !== r) return;
+    r.av = makeAvatar(g, r.color, r.name, false); r.av.root.visible = r.seen; r.av.root.position.copy(r.tp); r.av.root.rotation.y = r.tr; scene.add(r.av.root);
+  });
 }
-function removeRemote(id) { const r = remotes.get(id); if (!r) return; scene.remove(r.av.root); remotes.delete(id); updatePlayerList(); }
+function removeRemote(id) { const r = remotes.get(id); if (!r) return; if (r.av) scene.remove(r.av.root); remotes.delete(id); updatePlayerList(); }
 function setRemoteState(r, d) {
   if (!Array.isArray(d.p)) return; r.tp.fromArray(d.p.map(Number)); r.tr = +d.r || 0; r.a = String(d.a || 'Idle'); r.s = { p: d.p, r: d.r, a: d.a };
-  if (!r.seen) { r.seen = true; r.av.root.position.copy(r.tp); r.av.root.visible = true; }
+  if (!r.seen) { r.seen = true; if (r.av) { r.av.root.position.copy(r.tp); r.av.root.visible = true; } }
 }
 function updateRemotes(dt) {
   for (const r of remotes.values()) {
-    if (!r.seen) continue; const k = 1 - Math.exp(-12 * dt);
+    if (!r.seen || !r.av) continue; const k = 1 - Math.exp(-12 * dt);
     r.av.root.position.lerp(r.tp, k); r.av.root.rotation.y = angLerp(r.av.root.rotation.y, r.tr, k); r.av.play(r.a); r.av.update(dt);
   }
 }
@@ -976,7 +1027,7 @@ function startGame(w) {
   rebuildPhysics(); maskGrass();
   dayTime = typeof w.time === 'number' ? w.time : 0.3;
   const a = Math.random() * 6.28; player.pos.set(Math.cos(a) * 3, 0, Math.sin(a) * 3 + 2); player.pos.y = groundAt(player.pos.x, player.pos.z, 50);
-  player.av = makeAvatar(profile.color, profile.name, true); scene.add(player.av.root);
+  player.av = makeAvatar(myCharG, profile.color, profile.name, true); scene.add(player.av.root);
   $('menu').classList.add('hidden'); ['info', 'tools', 'chat'].forEach(id => $(id).classList.remove('hidden'));
   $('wtitle').textContent = '🪷 ' + w.name; $('codebox').classList.toggle('hidden', !net.host);
   updatePlayerList(); inGame = true; cam.snap = true;
@@ -995,7 +1046,11 @@ $('swatches').onclick = e => { const c = e.target.dataset.c; if (!c) return; pro
 function saveProfile() { profile.name = $('pname').value.trim().slice(0, 16) || 'Traveler'; store.set('lv.profile', profile); }
 $('bNew').onclick = () => { $('newPane').classList.toggle('hidden'); $('joinPane').classList.add('hidden'); };
 $('bJoin').onclick = () => { $('joinPane').classList.toggle('hidden'); $('newPane').classList.add('hidden'); $('jcode').focus(); };
-async function go(fn) { saveProfile(); sfx.init(); status('Getting things ready…'); await assetsReady; fn(); }
+async function go(fn) { saveProfile(); sfx.init(); status('Getting your character ready…'); await assetsReady; myCharG = await getChar(profile.char); if (!myCharG) toast('Could not download the character model, using a simple one.'); fn(); }
+profile.char = charKey(profile.char);
+$('chars').innerHTML = Object.entries(CHARS).map(([k, [label]]) => `<div class="ch${k === profile.char ? ' on' : ''}" data-k="${k}">${label}</div>`).join('');
+$('chars').onclick = e => { const k = e.target.dataset.k; if (!k) return; profile.char = k; getChar(k); [...$('chars').children].forEach(c => c.classList.toggle('on', c.dataset.k === k)); };
+getChar(profile.char);
 $('bCreate').onclick = () => go(() => hostWorld({ id: 'w' + Date.now(), name: $('wname').value.trim() || 'My Vale', seed: Math.random() * 1e9 | 0, pieces: [], time: 0.3 }));
 $('bGo').onclick = () => go(() => joinWorld($('jcode').value));
 $('jcode').onkeydown = e => { if (e.key === 'Enter') $('bGo').click(); };
@@ -1048,8 +1103,9 @@ function frame() {
   updatePlayer(dt); updateCamera(dt); updateSky(dt); updateRemotes(dt); updateLife(dt); updateGhost(); updateLights(dt);
   sfx.update(dt, env); netTick(dt);
   if ((clockT -= dt) <= 0) { clockT = 1; const h = dayTime * 24; $('clock').textContent = `${dayF > 0.5 ? '☀️' : '🌙'} ${String(h | 0).padStart(2, '0')}:${String((h % 1) * 60 | 0).padStart(2, '0')}`; }
-  renderer.render(scene, camera);
+  if (fx.on) composer.render(dt); else renderer.render(scene, camera);
 }
+$('tFx').onclick = () => { fx.on = !fx.on; store.set('lv.fx', fx.on); toast(fx.on ? '✨ Pretty graphics on' : 'Simple graphics (faster)'); };
 frame();
 window.__lv = { get inGame() { return inGame; }, remotes, pieces, player, net };
 </script>
